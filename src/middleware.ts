@@ -52,12 +52,16 @@ export async function middleware(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  // --- E) Unknown host in production: 404 ---
-  if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not Found", { status: 404 });
+  // --- E) Unknown or unmatched host: treat as marketing ---
+  // In production on Vercel, env vars may not resolve as expected in
+  // Edge Runtime. Fall through to serve public marketing pages rather
+  // than blocking with a 404.
+  if (APP_ROUTES.test(pathname)) {
+    const appHost =
+      process.env.APP_CANONICAL_HOST || "com.togetherchurch.app";
+    const url = new URL(`https://${appHost}/login`);
+    return NextResponse.redirect(url, 302);
   }
-
-  // In dev, allow everything (permissive)
   return NextResponse.next();
 }
 
