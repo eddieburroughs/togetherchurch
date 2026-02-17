@@ -1,5 +1,5 @@
 import { checkRouteFeature } from "@/lib/features";
-import { getPerson, getPersonTags } from "@/features/people/server/queries";
+import { getPerson, getPersonTags, getHousehold } from "@/features/people/server/queries";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -14,7 +14,10 @@ export default async function PersonDetailPage({ params }: Props) {
   const person = await getPerson(id);
   if (!person) notFound();
 
-  const tags = await getPersonTags(id);
+  const [tags, household] = await Promise.all([
+    getPersonTags(id),
+    person.household_id ? getHousehold(person.household_id) : null,
+  ]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -25,9 +28,17 @@ export default async function PersonDetailPage({ params }: Props) {
         &larr; Back to People
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold tracking-tight">
-        {person.first_name} {person.last_name}
-      </h1>
+      <div className="mt-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {person.first_name} {person.last_name}
+        </h1>
+        <Link
+          href={`/admin/people/${id}/edit`}
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        >
+          Edit
+        </Link>
+      </div>
 
       <div className="mt-6 space-y-4">
         <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
@@ -57,6 +68,19 @@ export default async function PersonDetailPage({ params }: Props) {
                 </span>
               </dd>
             </div>
+            {household && (
+              <div className="flex justify-between">
+                <dt className="text-zinc-500">Household</dt>
+                <dd>
+                  <Link
+                    href={`/admin/households/${household.id}`}
+                    className="text-zinc-900 hover:underline dark:text-zinc-100"
+                  >
+                    {household.name}
+                  </Link>
+                </dd>
+              </div>
+            )}
           </dl>
         </div>
 
@@ -65,22 +89,17 @@ export default async function PersonDetailPage({ params }: Props) {
             <h2 className="text-sm font-semibold text-zinc-500">Tags</h2>
             <div className="mt-2 flex flex-wrap gap-1">
               {tags.map((t) => (
-                <span
+                <Link
                   key={t.id}
-                  className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  href={`/admin/tags/${t.id}`}
+                  className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                 >
                   {t.name}
-                </span>
+                </Link>
               ))}
             </div>
           </div>
         )}
-
-        <div className="rounded-lg border border-dashed border-zinc-300 p-4 text-center dark:border-zinc-700">
-          <p className="text-sm text-zinc-500">
-            Notes and activity timeline coming soon.
-          </p>
-        </div>
       </div>
     </main>
   );

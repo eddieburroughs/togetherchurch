@@ -1,6 +1,7 @@
 import { checkRouteFeature } from "@/lib/features";
-import { listHouseholds } from "@/features/people/server/queries";
+import { listHouseholdsWithCounts } from "@/features/people/server/queries";
 import { HouseholdActions } from "./household-actions";
+import Link from "next/link";
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
@@ -11,7 +12,7 @@ export default async function HouseholdsPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const search = params.q ?? "";
-  const households = await listHouseholds(search);
+  const households = await listHouseholdsWithCounts(search);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -29,10 +30,16 @@ export default async function HouseholdsPage({ searchParams }: Props) {
 
       <div className="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
         {households.map((h) => (
-          <div key={h.id} className="flex items-center justify-between px-4 py-3">
+          <Link
+            key={h.id}
+            href={`/admin/households/${h.id}`}
+            className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+          >
             <span className="text-sm font-medium">{h.name}</span>
-            <span className="text-xs text-zinc-500">{new Date(h.created_at).toLocaleDateString()}</span>
-          </div>
+            <span className="text-xs text-zinc-500">
+              {h.member_count ?? 0} {(h.member_count ?? 0) === 1 ? "member" : "members"}
+            </span>
+          </Link>
         ))}
         {households.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-zinc-500">

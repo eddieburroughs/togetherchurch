@@ -22,18 +22,31 @@ export async function createPerson(formData: FormData) {
     throw new Error("Campus is required.");
   }
 
-  const { error } = await admin.from("people").insert({
-    church_id: ctx.churchId,
-    first_name: firstName,
-    last_name: lastName,
-    email: (formData.get("email") as string)?.trim() || null,
-    phone: (formData.get("phone") as string)?.trim() || null,
-    household_id: (formData.get("household_id") as string) || null,
-    campus_id: campusId,
-    status: "active",
-  });
+  const { data: person, error } = await admin
+    .from("people")
+    .insert({
+      church_id: ctx.churchId,
+      first_name: firstName,
+      last_name: lastName,
+      email: (formData.get("email") as string)?.trim() || null,
+      phone: (formData.get("phone") as string)?.trim() || null,
+      household_id: (formData.get("household_id") as string) || null,
+      campus_id: campusId,
+      status: "active",
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(error.message);
+
+  // Handle tag assignments
+  const tagIds = formData.getAll("tag_ids") as string[];
+  if (tagIds.length > 0 && person) {
+    await admin.from("person_tags").insert(
+      tagIds.map((tagId) => ({ person_id: person.id, tag_id: tagId })),
+    );
+  }
+
   redirect("/admin/people");
 }
 
@@ -63,6 +76,17 @@ export async function updatePerson(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+
+  // Replace tags: delete all existing, insert new
+  const tagIds = formData.getAll("tag_ids") as string[];
+  await admin.from("person_tags").delete().eq("person_id", id);
+  if (tagIds.length > 0) {
+    await admin.from("person_tags").insert(
+      tagIds.map((tagId) => ({ person_id: id, tag_id: tagId })),
+    );
+  }
+
+  revalidatePath(`/admin/people/${id}`);
   revalidatePath("/admin/people");
 }
 
@@ -128,6 +152,119 @@ export async function createHousehold(formData: FormData) {
 
   if (error) throw new Error(error.message);
   revalidatePath("/admin/households");
+}
+
+export async function updateHousehold(id: string, formData: FormData) {
+  const { ctx } = await requireFeature("core.people");
+
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Server not configured.");
+
+  const name = (formData.get("name") as string)?.trim();
+  if (!name) throw new Error("Household name required.");
+
+  const { error } = await admin
+    .from("households")
+    .update({ name })
+    .eq("id", id)
+    .eq("church_id", ctx.churchId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/households/${id}`);
+  revalidatePath("/admin/households");
+}
+
+export async function deleteHousehold(id: string) {
+  const { ctx } = await requireFeature("core.people");
+
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Server not configured.");
+
+  // Unassign people from this household first
+  await admin
+    .from("people")
+    .update({ household_id: null })
+    .eq("household_id", id)
+    .eq("church_id", ctx.churchId);
+
+  await admin
+    .from("households")
+    .delete()
+    .eq("id", id)
+    .eq("church_id", ctx.churchId);
+
+  revalidatePath("/admin/households");
+  revalidatePath("/admin/people");
+}
+
+export async function exportPeopleCsv() {
+  const { ctx } = await requireFeature("core.people");
+
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Server not configured.");
+
+  const { data: people } = await admin
+    .from("people")
+    .select("id, first_name, last_name, email, phone, status, household_id")
+    .eq("church_id", ctx.churchId)
+    .order("last_name")
+    .order("first_name");
+
+  if (!people || people.length === 0) return "";
+
+  // Fetch households
+  const { data: households } = await admin
+    .from("households")
+    .select("id, name")
+    .eq("church_id", ctx.churchId);
+
+  const householdMap = new Map(
+    (households ?? []).map((h) => [h.id, h.name]),
+  );
+
+  // Fetch person_tags with tag names
+  const personIds = people.map((p) => p.id);
+  const { data: personTags } = await admin
+    .from("person_tags")
+    .select("person_id, tags(name)")
+    .in("person_id", personIds);
+
+  const tagsByPerson = new Map<string, string[]>();
+  for (const pt of personTags ?? []) {
+    const tagName = (pt.tags as unknown as { name: string })?.name;
+    if (tagName) {
+      const existing = tagsByPerson.get(pt.person_id) ?? [];
+      existing.push(tagName);
+      tagsByPerson.set(pt.person_id, existing);
+    }
+  }
+
+  // Build CSV
+  const escape = (v: string) => {
+    if (v.includes(",") || v.includes('"') || v.includes("\n")) {
+      return `"${v.replace(/"/g, '""')}"`;
+    }
+    return v;
+  };
+
+  const header = "first_name,last_name,email,phone,status,household,tags";
+  const rows = people.map((p) => {
+    const household = p.household_id
+      ? (householdMap.get(p.household_id) ?? "")
+      : "";
+    const tags = (tagsByPerson.get(p.id) ?? []).join(", ");
+    return [
+      escape(p.first_name),
+      escape(p.last_name),
+      escape(p.email ?? ""),
+      escape(p.phone ?? ""),
+      escape(p.status),
+      escape(household),
+      escape(tags),
+    ].join(",");
+  });
+
+  return [header, ...rows].join("\n");
 }
 
 export interface ImportRow {
