@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
+import {
+  getChurchFeatures,
+  featureMapToObject,
+} from "@/lib/features/getChurchFeatures";
+import { FeatureProvider } from "@/lib/features/FeatureProvider";
 import { ENV } from "@/lib/env";
 
 export default async function AdminLayout({
@@ -50,5 +55,11 @@ export default async function AdminLayout({
     );
   }
 
-  return <>{children}</>;
+  // Resolve features for client-side gating (Layer 1)
+  const featureMap = await getChurchFeatures(ctx.churchId);
+  const features = featureMapToObject(featureMap);
+
+  return (
+    <FeatureProvider features={features}>{children}</FeatureProvider>
+  );
 }
