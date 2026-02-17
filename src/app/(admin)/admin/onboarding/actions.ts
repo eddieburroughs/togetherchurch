@@ -58,6 +58,36 @@ export async function createChurch(formData: FormData) {
     status: "trial",
   });
 
+  // Seed default form definitions
+  await admin.from("form_definitions").insert([
+    {
+      church_id: church.id,
+      key: "im_new",
+      title: "I'm New",
+      schema: {
+        fields: [
+          { name: "first_name", label: "First Name", type: "text", required: true },
+          { name: "last_name", label: "Last Name", type: "text", required: true },
+          { name: "email", label: "Email", type: "email", required: true },
+          { name: "phone", label: "Phone", type: "tel", required: false },
+          { name: "how_heard", label: "How did you hear about us?", type: "text", required: false },
+        ],
+      },
+    },
+    {
+      church_id: church.id,
+      key: "prayer_request",
+      title: "Prayer Request",
+      schema: {
+        fields: [
+          { name: "name", label: "Your Name", type: "text", required: true },
+          { name: "request", label: "Prayer Request", type: "textarea", required: true },
+          { name: "private", label: "Keep private (only leaders will see)", type: "checkbox", required: false },
+        ],
+      },
+    },
+  ]);
+
   // Ensure profile exists
   await admin
     .from("profiles")
