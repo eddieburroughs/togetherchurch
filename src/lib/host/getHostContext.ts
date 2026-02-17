@@ -10,45 +10,40 @@ export interface HostContext {
 }
 
 /**
- * Read host config at call time (not module level) so that env vars
- * are resolved correctly in both Edge Runtime and serverless contexts.
+ * Known hosts — hardcoded for reliable matching in Edge Runtime
+ * where process.env may not resolve as expected.
  */
-function getConfig() {
-  const appCanonical =
-    process.env.APP_CANONICAL_HOST || "com.togetherchurch.app";
-  const appAlias = process.env.APP_ALIAS_HOST || "app.togetherchurch.app";
-  const marketing = process.env.MARKETING_HOST || "togetherchurch.app";
-  const marketingWww =
-    process.env.MARKETING_HOST_WWW || "www.togetherchurch.app";
-  const apiHost = process.env.OPTIONAL_API_HOST || undefined;
+const APP_CANONICAL_HOST = "com.togetherchurch.app";
+const APP_ALIAS_HOST = "app.togetherchurch.app";
 
-  return {
-    appCanonical,
-    appAlias,
-    marketingHosts: [marketing, marketingWww],
-    appHosts: [appCanonical, appAlias],
-    localHosts: ["localhost", "127.0.0.1"],
-    apiHost,
-  };
-}
+const MARKETING_HOSTS = [
+  "togetherchurch.app",
+  "www.togetherchurch.app",
+];
+
+const APP_HOSTS = [
+  APP_CANONICAL_HOST,
+  APP_ALIAS_HOST,
+];
+
+const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
 
 export function getHostContext(rawHost: string | null): HostContext {
   const host = (rawHost ?? "localhost").split(":")[0].toLowerCase();
-  const cfg = getConfig();
 
   const base: Omit<HostContext, "kind"> = {
     host,
-    canonicalAppHost: cfg.appCanonical,
-    marketingHosts: cfg.marketingHosts,
-    appHosts: cfg.appHosts,
-    apiHost: cfg.apiHost,
+    canonicalAppHost: APP_CANONICAL_HOST,
+    marketingHosts: MARKETING_HOSTS,
+    appHosts: APP_HOSTS,
+    apiHost: undefined,
   };
 
-  if (cfg.marketingHosts.includes(host)) {
+  if (MARKETING_HOSTS.includes(host)) {
     return { ...base, kind: "marketing" };
   }
 
-  if (cfg.appHosts.includes(host) || cfg.localHosts.includes(host)) {
+  if (APP_HOSTS.includes(host) || LOCAL_HOSTS.includes(host)) {
     return { ...base, kind: "app" };
   }
 
@@ -57,14 +52,9 @@ export function getHostContext(rawHost: string | null): HostContext {
     return { ...base, kind: "app" };
   }
 
-  if (cfg.apiHost && host === cfg.apiHost) {
-    return { ...base, kind: "api" };
-  }
-
   return { ...base, kind: "unknown" };
 }
 
 export function isAliasHost(host: string): boolean {
-  const appAlias = process.env.APP_ALIAS_HOST || "app.togetherchurch.app";
-  return host.split(":")[0].toLowerCase() === appAlias;
+  return host.split(":")[0].toLowerCase() === APP_ALIAS_HOST;
 }
