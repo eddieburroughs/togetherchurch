@@ -24,6 +24,18 @@ export const ENV = {
   MARKETING_HOST_WWW: env("MARKETING_HOST_WWW", "www.togetherchurch.app"),
   OPTIONAL_API_HOST: env("OPTIONAL_API_HOST"),
 
+  // Twilio (SMS)
+  TWILIO_ACCOUNT_SID: env("TWILIO_ACCOUNT_SID"),
+  TWILIO_AUTH_TOKEN: env("TWILIO_AUTH_TOKEN"),
+  TWILIO_PHONE_NUMBER: env("TWILIO_PHONE_NUMBER"),
+
+  // SMTP (Email)
+  SMTP_HOST: env("SMTP_HOST"),
+  SMTP_PORT: env("SMTP_PORT", "587"),
+  SMTP_USER: env("SMTP_USER"),
+  SMTP_PASS: env("SMTP_PASS"),
+  EMAIL_FROM: env("EMAIL_FROM", "noreply@togetherchurch.app"),
+
   // Helpers
   get isConfigured() {
     return Boolean(this.SUPABASE_URL && this.SUPABASE_ANON_KEY);
