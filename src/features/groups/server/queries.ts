@@ -93,6 +93,7 @@ export async function getGroup(id: string) {
 }
 
 export async function getGroupMembers(groupId: string) {
+  const churchId = await getChurchId();
   const admin = getSupabaseAdmin();
   if (!admin) return [];
 
@@ -100,6 +101,7 @@ export async function getGroupMembers(groupId: string) {
     .from("group_members")
     .select("*")
     .eq("group_id", groupId)
+    .eq("church_id", churchId)
     .order("role")
     .order("joined_at");
 
@@ -131,6 +133,7 @@ export async function getGroupMembers(groupId: string) {
 }
 
 export async function getGroupMembership(groupId: string, userId: string) {
+  const churchId = await getChurchId();
   const admin = getSupabaseAdmin();
   if (!admin) return null;
 
@@ -139,6 +142,7 @@ export async function getGroupMembership(groupId: string, userId: string) {
     .select("*")
     .eq("group_id", groupId)
     .eq("user_id", userId)
+    .eq("church_id", churchId)
     .single();
 
   return data as GroupMemberRow | null;
@@ -176,6 +180,7 @@ export async function getChatMessages(
   groupId: string,
   opts?: { limit?: number; before?: string },
 ) {
+  const churchId = await getChurchId();
   const admin = getSupabaseAdmin();
   if (!admin) return [];
 
@@ -185,6 +190,7 @@ export async function getChatMessages(
     .from("chat_messages")
     .select("*")
     .eq("group_id", groupId)
+    .eq("church_id", churchId)
     .order("created_at", { ascending: false })
     .limit(limit);
 

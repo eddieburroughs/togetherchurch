@@ -5,11 +5,12 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
+import { logAudit } from "@/lib/audit/logAudit";
 
 // ── Campus CRUD ───────────────────────────────────────────────────────────
 
 export async function createCampus(formData: FormData) {
-  const { ctx } = await requireFeature("org.campuses");
+  const { session, ctx } = await requireFeature("org.campuses");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -34,11 +35,12 @@ export async function createCampus(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "campus.created", targetType: "campus", meta: { name } });
   revalidatePath("/admin/settings/campuses");
 }
 
 export async function updateCampus(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("org.campuses");
+  const { session, ctx } = await requireFeature("org.campuses");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -62,11 +64,12 @@ export async function updateCampus(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "campus.updated", targetType: "campus", targetId: id, meta: { name } });
   revalidatePath("/admin/settings/campuses");
 }
 
 export async function deleteCampus(id: string) {
-  const { ctx } = await requireFeature("org.campuses");
+  const { session, ctx } = await requireFeature("org.campuses");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -77,6 +80,7 @@ export async function deleteCampus(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "campus.deleted", targetType: "campus", targetId: id });
   revalidatePath("/admin/settings/campuses");
 }
 
@@ -108,6 +112,7 @@ export async function updateCampusMode(mode: "off" | "optional" | "required") {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "settings.campus_mode_updated", targetType: "settings", meta: { mode } });
   revalidatePath("/admin/settings/church");
   revalidatePath("/admin");
 }

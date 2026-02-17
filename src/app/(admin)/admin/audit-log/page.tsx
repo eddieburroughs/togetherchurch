@@ -41,6 +41,22 @@ const ACTION_LABELS: Record<string, string> = {
   "partner.updated": "Updated giving partner",
   "partner.deleted": "Removed giving partner",
   "giving.url_updated": "Updated giving URL",
+  "campus.created": "Created campus",
+  "campus.updated": "Updated campus",
+  "campus.deleted": "Deleted campus",
+  "settings.campus_mode_updated": "Updated campus mode",
+  "ticket_type.created": "Created ticket type",
+  "ticket_type.updated": "Updated ticket type",
+  "ticket_type.deleted": "Deleted ticket type",
+  "ticket.checked_in": "Checked in attendee",
+  "kid.created": "Added child",
+  "kid.updated": "Updated child",
+  "kid.deleted": "Deleted child",
+  "session.created": "Created check-in session",
+  "session.deleted": "Deleted check-in session",
+  "form_submission.deleted": "Deleted form submission",
+  "form.enabled": "Enabled form",
+  "form.disabled": "Disabled form",
 };
 
 const TARGET_TYPES = [
@@ -56,6 +72,12 @@ const TARGET_TYPES = [
   "order",
   "partner",
   "settings",
+  "campus",
+  "ticket_type",
+  "kid",
+  "session",
+  "form",
+  "form_submission",
 ];
 
 function formatAction(action: string): string {

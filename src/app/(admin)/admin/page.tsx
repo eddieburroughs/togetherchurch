@@ -82,6 +82,12 @@ const ACTION_LABELS: Record<string, string> = {
   "order.refunded": "refunded an order",
   "partner.created": "added a giving partner",
   "giving.url_updated": "updated giving URL",
+  "campus.created": "created a campus",
+  "campus.updated": "updated a campus",
+  "campus.deleted": "deleted a campus",
+  "ticket_type.created": "created a ticket type",
+  "kid.created": "added a child",
+  "session.created": "created a check-in session",
 };
 
 function formatAction(action: string): string {

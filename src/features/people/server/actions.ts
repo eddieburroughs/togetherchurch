@@ -287,11 +287,7 @@ export interface ImportRow {
 }
 
 export async function importPeople(rows: ImportRow[]) {
-  const session = await getSessionUser();
-  if (!session) throw new Error("Authentication required.");
-
-  const ctx = await getUserChurchContext(session.id);
-  if (!ctx) throw new Error("No church membership.");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");

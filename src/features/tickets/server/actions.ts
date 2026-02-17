@@ -23,7 +23,7 @@ function generateConfirmationCode(): string {
 // ---------------------------------------------------------------------------
 
 export async function createTicketType(eventId: string, formData: FormData) {
-  const { ctx } = await requireFeature("engage.events.tickets");
+  const { session, ctx } = await requireFeature("engage.events.tickets");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -62,11 +62,12 @@ export async function createTicketType(eventId: string, formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "ticket_type.created", targetType: "ticket_type", meta: { name, event_id: eventId } });
   revalidatePath(`/admin/events/${eventId}/tickets`);
 }
 
 export async function updateTicketType(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("engage.events.tickets");
+  const { session, ctx } = await requireFeature("engage.events.tickets");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -106,11 +107,12 @@ export async function updateTicketType(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "ticket_type.updated", targetType: "ticket_type", targetId: id, meta: { name } });
   revalidatePath(`/admin/events`);
 }
 
 export async function deleteTicketType(id: string, eventId: string) {
-  const { ctx } = await requireFeature("engage.events.tickets");
+  const { session, ctx } = await requireFeature("engage.events.tickets");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -121,6 +123,7 @@ export async function deleteTicketType(id: string, eventId: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "ticket_type.deleted", targetType: "ticket_type", targetId: id, meta: { event_id: eventId } });
   revalidatePath(`/admin/events/${eventId}/tickets`);
 }
 
@@ -568,6 +571,7 @@ export async function checkInByConfirmationCode(
     checked_in_by: session.id,
   });
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "ticket.checked_in", targetType: "order", targetId: order.id, meta: { event_id: eventId, confirmation_code: confirmationCode } });
   revalidatePath(`/admin/events/${eventId}/checkin`);
   return { orderId: order.id };
 }

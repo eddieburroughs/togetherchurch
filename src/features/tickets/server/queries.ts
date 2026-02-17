@@ -54,6 +54,7 @@ export interface StripeConnectRow {
 }
 
 export async function listTicketTypes(eventId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return [];
 
@@ -61,6 +62,7 @@ export async function listTicketTypes(eventId: string) {
     .from("ticket_types")
     .select("*")
     .eq("event_id", eventId)
+    .eq("church_id", churchId)
     .order("sort_order")
     .order("created_at");
 
@@ -68,6 +70,7 @@ export async function listTicketTypes(eventId: string) {
 }
 
 export async function getTicketType(id: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return null;
 
@@ -75,6 +78,7 @@ export async function getTicketType(id: string) {
     .from("ticket_types")
     .select("*")
     .eq("id", id)
+    .eq("church_id", churchId)
     .single();
 
   return data as TicketTypeRow | null;
@@ -96,6 +100,7 @@ export async function listEventOrders(eventId: string) {
 }
 
 export async function getOrder(id: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return null;
 
@@ -103,14 +108,26 @@ export async function getOrder(id: string) {
     .from("ticket_orders")
     .select("*")
     .eq("id", id)
+    .eq("church_id", churchId)
     .single();
 
   return data as TicketOrderRow | null;
 }
 
 export async function getOrderItems(orderId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return [];
+
+  // Verify order belongs to church before returning items
+  const { data: order } = await supabase
+    .from("ticket_orders")
+    .select("id")
+    .eq("id", orderId)
+    .eq("church_id", churchId)
+    .single();
+
+  if (!order) return [];
 
   const { data } = await supabase
     .from("ticket_order_items")
@@ -121,6 +138,7 @@ export async function getOrderItems(orderId: string) {
 }
 
 export async function getUserOrderForEvent(eventId: string, userId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return null;
 
@@ -129,6 +147,7 @@ export async function getUserOrderForEvent(eventId: string, userId: string) {
     .select("*")
     .eq("event_id", eventId)
     .eq("user_id", userId)
+    .eq("church_id", churchId)
     .in("status", ["completed", "pending"])
     .order("created_at", { ascending: false })
     .limit(1)
@@ -152,8 +171,19 @@ export async function getStripeConnect() {
 }
 
 export async function getTicketSoldCount(ticketTypeId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return 0;
+
+  // Verify ticket type belongs to church
+  const { data: tt } = await supabase
+    .from("ticket_types")
+    .select("id")
+    .eq("id", ticketTypeId)
+    .eq("church_id", churchId)
+    .single();
+
+  if (!tt) return 0;
 
   const { data } = await supabase
     .from("ticket_order_items")
@@ -177,6 +207,7 @@ export async function getTicketSoldCount(ticketTypeId: string) {
 }
 
 export async function getEventCheckins(eventId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return [];
 
@@ -184,6 +215,7 @@ export async function getEventCheckins(eventId: string) {
     .from("ticket_checkins")
     .select("*")
     .eq("event_id", eventId)
+    .eq("church_id", churchId)
     .order("checked_in_at", { ascending: false });
 
   return (data ?? []) as { id: string; order_id: string; event_id: string; checked_in_at: string }[];

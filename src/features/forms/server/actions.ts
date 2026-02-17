@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin, getSupabaseServer } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 
 export async function submitForm(formKey: string, payload: Record<string, string | boolean>) {
   const session = await getSessionUser();
@@ -72,7 +73,7 @@ export async function submitForm(formKey: string, payload: Record<string, string
 }
 
 export async function deleteSubmission(id: string) {
-  const { ctx } = await requireFeature("core.forms");
+  const { session, ctx } = await requireFeature("core.forms");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -83,11 +84,12 @@ export async function deleteSubmission(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "form_submission.deleted", targetType: "form_submission", targetId: id });
   revalidatePath("/admin/inbox/forms");
 }
 
 export async function toggleFormEnabled(formId: string, enabled: boolean) {
-  const { ctx } = await requireFeature("core.forms");
+  const { session, ctx } = await requireFeature("core.forms");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -99,5 +101,6 @@ export async function toggleFormEnabled(formId: string, enabled: boolean) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: enabled ? "form.enabled" : "form.disabled", targetType: "form", targetId: formId });
   revalidatePath("/admin/inbox/forms");
 }

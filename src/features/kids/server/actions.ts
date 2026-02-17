@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 
 function generatePickupCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -17,7 +18,7 @@ function generatePickupCode(): string {
 // ── Kids CRUD ───────────────────────────────────────────────────────────
 
 export async function createKid(formData: FormData) {
-  const { ctx } = await requireFeature("services.kids_checkin");
+  const { session, ctx } = await requireFeature("services.kids_checkin");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -41,11 +42,12 @@ export async function createKid(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "kid.created", targetType: "kid", meta: { name: `${firstName} ${lastName}` } });
   redirect("/admin/kids");
 }
 
 export async function updateKid(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("services.kids_checkin");
+  const { session, ctx } = await requireFeature("services.kids_checkin");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -72,11 +74,12 @@ export async function updateKid(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "kid.updated", targetType: "kid", targetId: id, meta: { name: `${firstName} ${lastName}` } });
   revalidatePath("/admin/kids");
 }
 
 export async function deleteKid(id: string) {
-  const { ctx } = await requireFeature("services.kids_checkin");
+  const { session, ctx } = await requireFeature("services.kids_checkin");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -87,13 +90,14 @@ export async function deleteKid(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "kid.deleted", targetType: "kid", targetId: id });
   revalidatePath("/admin/kids");
 }
 
 // ── Sessions CRUD ───────────────────────────────────────────────────────
 
 export async function createSession(formData: FormData) {
-  const { ctx } = await requireFeature("services.kids_checkin");
+  const { session, ctx } = await requireFeature("services.kids_checkin");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -120,11 +124,12 @@ export async function createSession(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "session.created", targetType: "session", meta: { name } });
   redirect("/admin/kids/sessions");
 }
 
 export async function deleteSession(id: string) {
-  const { ctx } = await requireFeature("services.kids_checkin");
+  const { session, ctx } = await requireFeature("services.kids_checkin");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -135,6 +140,7 @@ export async function deleteSession(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "session.deleted", targetType: "session", targetId: id });
   redirect("/admin/kids/sessions");
 }
 

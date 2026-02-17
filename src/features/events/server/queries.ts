@@ -86,6 +86,7 @@ export async function getEvent(id: string) {
 }
 
 export async function getEventRsvps(eventId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return [];
 
@@ -93,12 +94,14 @@ export async function getEventRsvps(eventId: string) {
     .from("event_rsvps")
     .select("*")
     .eq("event_id", eventId)
+    .eq("church_id", churchId)
     .order("created_at");
 
   return (data ?? []) as RsvpRow[];
 }
 
 export async function getUserRsvp(eventId: string, userId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return null;
 
@@ -107,19 +110,22 @@ export async function getUserRsvp(eventId: string, userId: string) {
     .select("*")
     .eq("event_id", eventId)
     .eq("user_id", userId)
+    .eq("church_id", churchId)
     .single();
 
   return data as RsvpRow | null;
 }
 
 export async function getRsvpCounts(eventId: string) {
+  const churchId = await getChurchId();
   const supabase = await getSupabaseServer();
   if (!supabase) return { yes: 0, no: 0, maybe: 0 };
 
   const { data } = await supabase
     .from("event_rsvps")
     .select("status")
-    .eq("event_id", eventId);
+    .eq("event_id", eventId)
+    .eq("church_id", churchId);
 
   const counts = { yes: 0, no: 0, maybe: 0 };
   for (const r of data ?? []) {

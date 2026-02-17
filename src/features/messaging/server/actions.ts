@@ -2,8 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getSessionUser } from "@/lib/auth/getSessionUser";
-import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
 import { logAudit } from "@/lib/audit/logAudit";
@@ -152,6 +150,10 @@ export async function getRecipientCount(opts: {
   audienceType: "all" | "tag";
   tagId?: string;
 }): Promise<number> {
+  const featureKey =
+    opts.channel === "sms" ? "core.messaging_sms" : "core.messaging_email";
+  await requireFeature(featureKey);
+
   const recipients = await getRecipients(
     opts.channel,
     opts.audienceType,
@@ -188,11 +190,7 @@ export async function createTemplate(formData: FormData) {
 }
 
 export async function updateTemplate(id: string, formData: FormData) {
-  const session = await getSessionUser();
-  if (!session) throw new Error("Authentication required.");
-
-  const ctx = await getUserChurchContext(session.id);
-  if (!ctx) throw new Error("No church membership.");
+  const { session, ctx } = await requireFeature("core.messaging_sms");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -215,12 +213,7 @@ export async function updateTemplate(id: string, formData: FormData) {
 }
 
 export async function deleteTemplate(id: string) {
-  // Check both messaging features — template could be either channel
-  const session = await getSessionUser();
-  if (!session) throw new Error("Authentication required.");
-
-  const ctx = await getUserChurchContext(session.id);
-  if (!ctx) throw new Error("No church membership.");
+  const { session, ctx } = await requireFeature("core.messaging_sms");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");

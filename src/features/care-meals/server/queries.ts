@@ -93,6 +93,7 @@ export async function getTrain(id: string) {
 }
 
 export async function getTrainSlots(trainId: string): Promise<SlotRow[]> {
+  const churchId = await getChurchId();
   const admin = getSupabaseAdmin();
   if (!admin) return [];
 
@@ -100,6 +101,7 @@ export async function getTrainSlots(trainId: string): Promise<SlotRow[]> {
     .from("care_slots")
     .select("*")
     .eq("train_id", trainId)
+    .eq("church_id", churchId)
     .order("slot_date")
     .order("slot_label");
 

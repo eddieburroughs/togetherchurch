@@ -2,6 +2,7 @@
 
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
+import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 
 export interface NotificationRow {
   id: string;
@@ -23,6 +24,9 @@ export async function listNotifications(opts?: {
   const session = await getSessionUser();
   if (!session) return { data: [], count: 0 };
 
+  const ctx = await getUserChurchContext(session.id);
+  if (!ctx) return { data: [], count: 0 };
+
   const supabase = await getSupabaseServer();
   if (!supabase) return { data: [], count: 0 };
 
@@ -33,6 +37,7 @@ export async function listNotifications(opts?: {
     .from("notifications")
     .select("*", { count: "exact" })
     .eq("user_id", session.id)
+    .eq("church_id", ctx.churchId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -48,6 +53,9 @@ export async function getUnreadCount() {
   const session = await getSessionUser();
   if (!session) return 0;
 
+  const ctx = await getUserChurchContext(session.id);
+  if (!ctx) return 0;
+
   const supabase = await getSupabaseServer();
   if (!supabase) return 0;
 
@@ -55,6 +63,7 @@ export async function getUnreadCount() {
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", session.id)
+    .eq("church_id", ctx.churchId)
     .eq("is_read", false);
 
   return count ?? 0;

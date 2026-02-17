@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHmac } from "node:crypto";
 import { handleGroupSmsReply } from "@/features/groups/server/actions";
+import { ENV } from "@/lib/env";
 
 const TWIML_EMPTY = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
 
@@ -9,6 +11,30 @@ function twiml(message: string) {
     `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${message}</Message></Response>`,
     { headers: { "Content-Type": "text/xml" } },
   );
+}
+
+/**
+ * Validate Twilio request signature (X-Twilio-Signature header).
+ * See: https://www.twilio.com/docs/usage/security#validating-requests
+ */
+function validateTwilioSignature(
+  requestUrl: string,
+  params: Record<string, string>,
+  signature: string,
+  authToken: string,
+): boolean {
+  // Sort params alphabetically and concatenate key + value
+  const data =
+    requestUrl +
+    Object.keys(params)
+      .sort()
+      .reduce((acc, key) => acc + key + params[key], "");
+
+  const expected = createHmac("sha1", authToken)
+    .update(data, "utf-8")
+    .digest("base64");
+
+  return expected === signature;
 }
 
 /**
@@ -24,6 +50,21 @@ export async function POST(request: NextRequest) {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     return new NextResponse("Service unavailable", { status: 503 });
+  }
+
+  // Verify Twilio signature if auth token is configured
+  if (ENV.TWILIO_AUTH_TOKEN) {
+    const signature = request.headers.get("x-twilio-signature") ?? "";
+    const clonedData = await request.clone().formData();
+    const params: Record<string, string> = {};
+    clonedData.forEach((value, paramKey) => {
+      params[paramKey] = String(value);
+    });
+
+    const requestUrl = request.url;
+    if (!validateTwilioSignature(requestUrl, params, signature, ENV.TWILIO_AUTH_TOKEN)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
   }
 
   const formData = await request.formData();

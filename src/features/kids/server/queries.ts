@@ -139,6 +139,7 @@ export async function getSession(id: string) {
 }
 
 export async function getSessionCheckins(sessionId: string): Promise<CheckinRow[]> {
+  const churchId = await getChurchId();
   const admin = getSupabaseAdmin();
   if (!admin) return [];
 
@@ -146,6 +147,7 @@ export async function getSessionCheckins(sessionId: string): Promise<CheckinRow[
     .from("kids_checkins")
     .select("*")
     .eq("session_id", sessionId)
+    .eq("church_id", churchId)
     .order("checked_in_at");
 
   if (!checkins || checkins.length === 0) return [];
@@ -186,6 +188,7 @@ export async function listLabelTemplates() {
 }
 
 export async function getLabelTemplate(id: string) {
+  const churchId = await getChurchId();
   const admin = getSupabaseAdmin();
   if (!admin) return null;
 
@@ -193,6 +196,7 @@ export async function getLabelTemplate(id: string) {
     .from("label_templates")
     .select("*")
     .eq("id", id)
+    .eq("church_id", churchId)
     .single();
 
   return data as LabelTemplateRow | null;

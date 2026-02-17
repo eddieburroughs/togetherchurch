@@ -35,7 +35,7 @@ values ('core.giving', 'Giving link and partner directory')
 on conflict (key) do nothing;
 
 insert into plan_features (plan_id, feature_key)
-select p.slug, 'core.giving'
+select p.id, 'core.giving'
 from plans p
-where p.slug in ('under_150', '151_500', '501_800', '801_plus', 'multisite')
+where p.id in ('under_150', '151_500', '501_800', '801_plus', 'multisite')
 on conflict do nothing;

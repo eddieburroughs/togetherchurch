@@ -9,7 +9,8 @@ Feature keys gate module access per organization. Each key maps to a plan tier v
 | `core.people`                  | people         | Contact directory and profiles     |
 | `core.events`                  | events         | Event calendar and management      |
 | `core.forms`                   | forms          | Custom form builder                |
-| `core.giving_external`         | core           | External giving link integration   |
+| `core.giving`                  | giving         | Giving link and partner directory  |
+| `core.announcements`           | announcements  | Announcement posting and feed      |
 | `core.messaging_sms`           | messaging      | SMS messaging                      |
 | `core.messaging_email`         | messaging      | Email messaging                    |
 | `engage.groups`                | groups         | Small groups management            |
@@ -25,8 +26,8 @@ Feature keys gate module access per organization. Each key maps to a plan tier v
 
 | Plan         | Sort | Includes                                                                 |
 | ------------ | ---- | ------------------------------------------------------------------------ |
-| `under_150`  | 1    | core.people, core.events, core.forms, core.giving_external, messaging    |
-| `151_500`    | 2    | above + engage.groups (chat, sms_mirror) + engage.care_meals             |
+| `under_150`  | 1    | core.people, core.events, core.forms, core.giving, core.announcements, messaging |
+| `151_500`    | 2    | above + engage.groups (chat, sms_mirror) + engage.care_meals                     |
 | `501_800`    | 3    | above + services.kids_checkin (labels) + engage.events.tickets           |
 | `801_plus`   | 4    | same as 501_800                                                          |
 | `multisite`  | 5    | all features including org.campuses                                      |
