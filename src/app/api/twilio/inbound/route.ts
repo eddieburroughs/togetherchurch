@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { handleGroupSmsReply } from "@/features/groups/server/actions";
+
+const TWIML_EMPTY = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
+
+function twiml(message: string) {
+  return new NextResponse(
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${message}</Message></Response>`,
+    { headers: { "Content-Type": "text/xml" } },
+  );
+}
 
 /**
  * Twilio inbound SMS webhook.
  * POST /api/twilio/inbound
  *
- * Handles STOP / START / HELP keywords to manage SMS opt-out.
- * Twilio sends form-encoded POST data.
+ * 1. STOP / START / HELP — SMS opt-out management
+ * 2. G-XXXXXX — group reply token routing
+ * 3. Anything else — empty TwiML
  */
 export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,7 +28,8 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const from = (formData.get("From") as string) ?? "";
-  const body = ((formData.get("Body") as string) ?? "").trim().toUpperCase();
+  const rawBody = ((formData.get("Body") as string) ?? "").trim();
+  const upperBody = rawBody.toUpperCase();
 
   if (!from) {
     return new NextResponse("Missing From", { status: 400 });
@@ -27,17 +39,16 @@ export async function POST(request: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Normalize phone — strip any formatting for matching
   const phone = from.replace(/\s+/g, "");
 
-  if (body === "STOP" || body === "UNSUBSCRIBE") {
-    // Set sms_opt_out = true for matching profiles
+  // ── 1. Opt-out keywords ───────────────────────────────────────────────
+
+  if (upperBody === "STOP" || upperBody === "UNSUBSCRIBE") {
     await supabase
       .from("profiles")
       .update({ sms_opt_out: true, updated_at: new Date().toISOString() })
       .eq("phone", phone);
 
-    // Also try with the raw "from" value in case formatting differs
     if (phone !== from) {
       await supabase
         .from("profiles")
@@ -45,14 +56,10 @@ export async function POST(request: NextRequest) {
         .eq("phone", from);
     }
 
-    // Return TwiML with confirmation
-    return new NextResponse(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Message>You have been unsubscribed. Reply START to resubscribe.</Message></Response>`,
-      { headers: { "Content-Type": "text/xml" } },
-    );
+    return twiml("You have been unsubscribed. Reply START to resubscribe.");
   }
 
-  if (body === "START" || body === "SUBSCRIBE") {
+  if (upperBody === "START" || upperBody === "SUBSCRIBE") {
     await supabase
       .from("profiles")
       .update({ sms_opt_out: false, updated_at: new Date().toISOString() })
@@ -65,22 +72,34 @@ export async function POST(request: NextRequest) {
         .eq("phone", from);
     }
 
-    return new NextResponse(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Message>You have been resubscribed to messages.</Message></Response>`,
-      { headers: { "Content-Type": "text/xml" } },
-    );
+    return twiml("You have been resubscribed to messages.");
   }
 
-  if (body === "HELP") {
-    return new NextResponse(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Reply STOP to unsubscribe or START to resubscribe.</Message></Response>`,
-      { headers: { "Content-Type": "text/xml" } },
-    );
+  if (upperBody === "HELP") {
+    return twiml("Reply STOP to unsubscribe or START to resubscribe.");
   }
 
-  // For any other message, return empty TwiML (no reply)
-  return new NextResponse(
-    `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
-    { headers: { "Content-Type": "text/xml" } },
-  );
+  // ── 2. Group reply tokens (G-XXXXXX <message>) ───────────────────────
+
+  const tokenMatch = rawBody.match(/^(G-[A-Z0-9]{6})\s*([\s\S]*)/i);
+  if (tokenMatch) {
+    const token = tokenMatch[1].toUpperCase();
+    const message = (tokenMatch[2] ?? "").trim();
+
+    if (message) {
+      const result = await handleGroupSmsReply(phone, token, message);
+      if (result.handled) {
+        return twiml("Message sent to group.");
+      }
+    }
+
+    // Token not found, expired, or no message body
+    return twiml("Could not deliver message. The reply code may have expired.");
+  }
+
+  // ── 3. Unrecognized ──────────────────────────────────────────────────
+
+  return new NextResponse(TWIML_EMPTY, {
+    headers: { "Content-Type": "text/xml" },
+  });
 }
