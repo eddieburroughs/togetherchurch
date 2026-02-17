@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 
 export async function createAnnouncement(formData: FormData) {
-  const { ctx } = await requireFeature("core.announcements");
+  const { session, ctx } = await requireFeature("core.announcements");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -46,11 +47,12 @@ export async function createAnnouncement(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "announcement.created", targetType: "announcement", meta: { title } });
   redirect("/admin/announcements");
 }
 
 export async function updateAnnouncement(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("core.announcements");
+  const { session, ctx } = await requireFeature("core.announcements");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -96,12 +98,13 @@ export async function updateAnnouncement(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "announcement.updated", targetType: "announcement", targetId: id, meta: { title } });
   revalidatePath("/admin/announcements");
   revalidatePath("/dashboard");
 }
 
 export async function deleteAnnouncement(id: string) {
-  const { ctx } = await requireFeature("core.announcements");
+  const { session, ctx } = await requireFeature("core.announcements");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -112,12 +115,13 @@ export async function deleteAnnouncement(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "announcement.deleted", targetType: "announcement", targetId: id });
   revalidatePath("/admin/announcements");
   revalidatePath("/dashboard");
 }
 
 export async function publishAnnouncement(id: string) {
-  const { ctx } = await requireFeature("core.announcements");
+  const { session, ctx } = await requireFeature("core.announcements");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -132,12 +136,13 @@ export async function publishAnnouncement(id: string) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "announcement.published", targetType: "announcement", targetId: id });
   revalidatePath("/admin/announcements");
   revalidatePath("/dashboard");
 }
 
 export async function unpublishAnnouncement(id: string) {
-  const { ctx } = await requireFeature("core.announcements");
+  const { session, ctx } = await requireFeature("core.announcements");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -149,6 +154,7 @@ export async function unpublishAnnouncement(id: string) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "announcement.unpublished", targetType: "announcement", targetId: id });
   revalidatePath("/admin/announcements");
   revalidatePath("/dashboard");
 }

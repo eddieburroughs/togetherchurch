@@ -6,12 +6,13 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 import { sendPushNotifications } from "@/lib/push/pushService";
 
 // ── Train CRUD ──────────────────────────────────────────────────────────
 
 export async function createTrain(formData: FormData) {
-  const { ctx } = await requireFeature("engage.care_meals");
+  const { session, ctx } = await requireFeature("engage.care_meals");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -38,11 +39,12 @@ export async function createTrain(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "train.created", targetType: "train", meta: { title } });
   redirect("/admin/care-meals");
 }
 
 export async function updateTrain(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("engage.care_meals");
+  const { session, ctx } = await requireFeature("engage.care_meals");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -68,11 +70,12 @@ export async function updateTrain(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "train.updated", targetType: "train", targetId: id, meta: { title } });
   revalidatePath(`/admin/care-meals/${id}`);
 }
 
 export async function deleteTrain(id: string) {
-  const { ctx } = await requireFeature("engage.care_meals");
+  const { session, ctx } = await requireFeature("engage.care_meals");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -83,6 +86,7 @@ export async function deleteTrain(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "train.deleted", targetType: "train", targetId: id });
   redirect("/admin/care-meals");
 }
 

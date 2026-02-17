@@ -30,6 +30,8 @@ export default async function SettingsPage() {
     links.push({ href: "/admin/settings/stripe-connect", label: "Stripe Connect", description: "Payment processing for tickets" });
   }
 
+  links.push({ href: "/admin/audit-log", label: "Activity Log", description: "View a log of admin actions and changes" });
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold tracking-tight">Settings</h1>

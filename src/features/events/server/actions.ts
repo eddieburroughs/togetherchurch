@@ -6,9 +6,10 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin, getSupabaseServer } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 
 export async function createEvent(formData: FormData) {
-  const { ctx } = await requireFeature("core.events");
+  const { session, ctx } = await requireFeature("core.events");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -41,11 +42,12 @@ export async function createEvent(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "event.created", targetType: "event", meta: { title } });
   redirect("/admin/events");
 }
 
 export async function updateEvent(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("core.events");
+  const { session, ctx } = await requireFeature("core.events");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -79,11 +81,12 @@ export async function updateEvent(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "event.updated", targetType: "event", targetId: id, meta: { title } });
   revalidatePath("/admin/events");
 }
 
 export async function deleteEvent(id: string) {
-  const { ctx } = await requireFeature("core.events");
+  const { session, ctx } = await requireFeature("core.events");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -94,6 +97,7 @@ export async function deleteEvent(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "event.deleted", targetType: "event", targetId: id });
   revalidatePath("/admin/events");
 }
 

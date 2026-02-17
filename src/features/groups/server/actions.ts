@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 import { sendPushNotifications } from "@/lib/push/pushService";
 import { sendSms, isTwilioConfigured } from "@/features/messaging/lib/sms-provider";
 
@@ -21,7 +22,7 @@ function generateToken(): string {
 // ── Group CRUD ──────────────────────────────────────────────────────────
 
 export async function createGroup(formData: FormData) {
-  const { ctx } = await requireFeature("engage.groups");
+  const { session, ctx } = await requireFeature("engage.groups");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -42,11 +43,12 @@ export async function createGroup(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "group.created", targetType: "group", meta: { name } });
   redirect("/admin/groups");
 }
 
 export async function updateGroup(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("engage.groups");
+  const { session, ctx } = await requireFeature("engage.groups");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -70,11 +72,12 @@ export async function updateGroup(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "group.updated", targetType: "group", targetId: id, meta: { name } });
   revalidatePath(`/admin/groups/${id}`);
 }
 
 export async function deleteGroup(id: string) {
-  const { ctx } = await requireFeature("engage.groups");
+  const { session, ctx } = await requireFeature("engage.groups");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -85,13 +88,14 @@ export async function deleteGroup(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "group.deleted", targetType: "group", targetId: id });
   redirect("/admin/groups");
 }
 
 // ── Members ─────────────────────────────────────────────────────────────
 
 export async function addGroupMember(groupId: string, userId: string, role: "leader" | "member") {
-  const { ctx } = await requireFeature("engage.groups");
+  const { session, ctx } = await requireFeature("engage.groups");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -108,11 +112,12 @@ export async function addGroupMember(groupId: string, userId: string, role: "lea
     throw new Error(error.message);
   }
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "group.member_added", targetType: "group", targetId: groupId, meta: { member_user_id: userId, role } });
   revalidatePath(`/admin/groups/${groupId}`);
 }
 
 export async function removeGroupMember(groupId: string, userId: string) {
-  const { ctx } = await requireFeature("engage.groups");
+  const { session, ctx } = await requireFeature("engage.groups");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -124,6 +129,7 @@ export async function removeGroupMember(groupId: string, userId: string) {
     .eq("church_id", ctx.churchId)
     .eq("user_id", userId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "group.member_removed", targetType: "group", targetId: groupId, meta: { member_user_id: userId } });
   revalidatePath(`/admin/groups/${groupId}`);
 }
 

@@ -6,9 +6,10 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 
 export async function createPerson(formData: FormData) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -47,11 +48,12 @@ export async function createPerson(formData: FormData) {
     );
   }
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "person.created", targetType: "person", targetId: person.id, meta: { name: `${firstName} ${lastName}` } });
   redirect("/admin/people");
 }
 
 export async function updatePerson(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -86,12 +88,13 @@ export async function updatePerson(id: string, formData: FormData) {
     );
   }
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "person.updated", targetType: "person", targetId: id });
   revalidatePath(`/admin/people/${id}`);
   revalidatePath("/admin/people");
 }
 
 export async function deletePerson(id: string) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -102,11 +105,12 @@ export async function deletePerson(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "person.deleted", targetType: "person", targetId: id });
   revalidatePath("/admin/people");
 }
 
 export async function createTag(formData: FormData) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -119,11 +123,12 @@ export async function createTag(formData: FormData) {
     .insert({ church_id: ctx.churchId, name });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "tag.created", targetType: "tag", meta: { name } });
   revalidatePath("/admin/tags");
 }
 
 export async function deleteTag(id: string) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -134,11 +139,12 @@ export async function deleteTag(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "tag.deleted", targetType: "tag", targetId: id });
   revalidatePath("/admin/tags");
 }
 
 export async function createHousehold(formData: FormData) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -151,11 +157,12 @@ export async function createHousehold(formData: FormData) {
     .insert({ church_id: ctx.churchId, name });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "household.created", targetType: "household", meta: { name } });
   revalidatePath("/admin/households");
 }
 
 export async function updateHousehold(id: string, formData: FormData) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -170,12 +177,13 @@ export async function updateHousehold(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "household.updated", targetType: "household", targetId: id, meta: { name } });
   revalidatePath(`/admin/households/${id}`);
   revalidatePath("/admin/households");
 }
 
 export async function deleteHousehold(id: string) {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -193,12 +201,13 @@ export async function deleteHousehold(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "household.deleted", targetType: "household", targetId: id });
   revalidatePath("/admin/households");
   revalidatePath("/admin/people");
 }
 
 export async function exportPeopleCsv() {
-  const { ctx } = await requireFeature("core.people");
+  const { session, ctx } = await requireFeature("core.people");
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -264,6 +273,7 @@ export async function exportPeopleCsv() {
     ].join(",");
   });
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "people.exported", targetType: "person", meta: { count: people.length } });
   return [header, ...rows].join("\n");
 }
 
@@ -434,6 +444,7 @@ export async function importPeople(rows: ImportRow[]) {
     }
   }
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "people.imported", targetType: "person", meta: { imported, skipped, total: rows.length } });
   revalidatePath("/admin/people");
   return { imported, skipped, total: rows.length };
 }

@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 import { sendSms } from "@/features/messaging/lib/sms-provider";
 import { sendEmail } from "@/features/messaging/lib/email-provider";
 import { estimateSegments } from "@/features/messaging/lib/segments";
@@ -140,6 +141,7 @@ export async function sendBroadcast(opts: {
     })
     .eq("id", sendRow.id);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "broadcast.sent", targetType: "broadcast", targetId: sendRow.id, meta: { channel: opts.channel, audience: opts.audienceType, sent: successCount, failed: failCount } });
   revalidatePath("/admin/messaging/sends");
 
   return { sent: successCount, failed: failCount };
@@ -162,7 +164,7 @@ export async function createTemplate(formData: FormData) {
   const channel = formData.get("channel") as "sms" | "email";
   const featureKey =
     channel === "sms" ? "core.messaging_sms" : "core.messaging_email";
-  const { ctx } = await requireFeature(featureKey);
+  const { session, ctx } = await requireFeature(featureKey);
 
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
@@ -181,6 +183,7 @@ export async function createTemplate(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "template.created", targetType: "template", meta: { name, channel } });
   redirect("/admin/messaging/templates");
 }
 
@@ -207,6 +210,7 @@ export async function updateTemplate(id: string, formData: FormData) {
     .eq("church_id", ctx.churchId);
 
   if (error) throw new Error(error.message);
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "template.updated", targetType: "template", targetId: id, meta: { name } });
   redirect("/admin/messaging/templates");
 }
 
@@ -227,5 +231,6 @@ export async function deleteTemplate(id: string) {
     .eq("id", id)
     .eq("church_id", ctx.churchId);
 
+  await logAudit({ churchId: ctx.churchId, userId: session.id, action: "template.deleted", targetType: "template", targetId: id });
   revalidatePath("/admin/messaging/templates");
 }
