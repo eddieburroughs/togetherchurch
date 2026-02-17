@@ -2,8 +2,21 @@
 
 import { useActionState } from "react";
 import { createEvent } from "@/features/events/server/actions";
+import { CampusSelect } from "@/features/campuses/components/campus-select";
 
-export function EventForm() {
+interface Campus {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export function EventForm({
+  campuses = [],
+  campusMode = "off",
+}: {
+  campuses?: Campus[];
+  campusMode?: "off" | "optional" | "required";
+}) {
   const [error, formAction, pending] = useActionState(
     async (_prev: string | null, formData: FormData) => {
       try {
@@ -62,6 +75,8 @@ export function EventForm() {
           </label>
         </div>
       </div>
+
+      <CampusSelect campuses={campuses} campusMode={campusMode} />
 
       <button type="submit" disabled={pending}
         className="w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">

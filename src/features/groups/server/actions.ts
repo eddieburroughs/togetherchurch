@@ -29,10 +29,16 @@ export async function createGroup(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) throw new Error("Group name is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin.from("groups").insert({
     church_id: ctx.churchId,
     name,
     description: (formData.get("description") as string)?.trim() || null,
+    campus_id: campusId,
   });
 
   if (error) throw new Error(error.message);
@@ -48,11 +54,17 @@ export async function updateGroup(id: string, formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) throw new Error("Group name is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin
     .from("groups")
     .update({
       name,
       description: (formData.get("description") as string)?.trim() || null,
+      campus_id: campusId,
     })
     .eq("id", id)
     .eq("church_id", ctx.churchId);

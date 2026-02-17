@@ -23,12 +23,18 @@ export async function createTrain(formData: FormData) {
   const endDate = formData.get("end_date") as string;
   if (!startDate || !endDate) throw new Error("Start and end dates are required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin.from("care_trains").insert({
     church_id: ctx.churchId,
     title,
     description: (formData.get("description") as string)?.trim() || null,
     start_date: startDate,
     end_date: endDate,
+    campus_id: campusId,
   });
 
   if (error) throw new Error(error.message);
@@ -44,6 +50,11 @@ export async function updateTrain(id: string, formData: FormData) {
   const title = (formData.get("title") as string)?.trim();
   if (!title) throw new Error("Title is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin
     .from("care_trains")
     .update({
@@ -51,6 +62,7 @@ export async function updateTrain(id: string, formData: FormData) {
       description: (formData.get("description") as string)?.trim() || null,
       start_date: formData.get("start_date") as string,
       end_date: formData.get("end_date") as string,
+      campus_id: campusId,
     })
     .eq("id", id)
     .eq("church_id", ctx.churchId);

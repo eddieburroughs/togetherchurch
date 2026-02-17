@@ -26,12 +26,18 @@ export async function createKid(formData: FormData) {
   const lastName = (formData.get("last_name") as string)?.trim();
   if (!firstName || !lastName) throw new Error("Name is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin.from("kids").insert({
     church_id: ctx.churchId,
     first_name: firstName,
     last_name: lastName,
     dob: (formData.get("dob") as string) || null,
     allergies: (formData.get("allergies") as string)?.trim() || null,
+    campus_id: campusId,
   });
 
   if (error) throw new Error(error.message);
@@ -48,6 +54,11 @@ export async function updateKid(id: string, formData: FormData) {
   const lastName = (formData.get("last_name") as string)?.trim();
   if (!firstName || !lastName) throw new Error("Name is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin
     .from("kids")
     .update({
@@ -55,6 +66,7 @@ export async function updateKid(id: string, formData: FormData) {
       last_name: lastName,
       dob: (formData.get("dob") as string) || null,
       allergies: (formData.get("allergies") as string)?.trim() || null,
+      campus_id: campusId,
     })
     .eq("id", id)
     .eq("church_id", ctx.churchId);
@@ -92,6 +104,11 @@ export async function createSession(formData: FormData) {
   const startsAt = formData.get("starts_at") as string;
   if (!startsAt) throw new Error("Start time is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin.from("kids_sessions").insert({
     church_id: ctx.churchId,
     name,
@@ -99,6 +116,7 @@ export async function createSession(formData: FormData) {
     ends_at: formData.get("ends_at")
       ? new Date(formData.get("ends_at") as string).toISOString()
       : null,
+    campus_id: campusId,
   });
 
   if (error) throw new Error(error.message);

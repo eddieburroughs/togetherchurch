@@ -17,6 +17,11 @@ export async function createPerson(formData: FormData) {
   const lastName = (formData.get("last_name") as string)?.trim();
   if (!firstName || !lastName) throw new Error("First and last name required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin.from("people").insert({
     church_id: ctx.churchId,
     first_name: firstName,
@@ -24,6 +29,7 @@ export async function createPerson(formData: FormData) {
     email: (formData.get("email") as string)?.trim() || null,
     phone: (formData.get("phone") as string)?.trim() || null,
     household_id: (formData.get("household_id") as string) || null,
+    campus_id: campusId,
     status: "active",
   });
 
@@ -37,6 +43,11 @@ export async function updatePerson(id: string, formData: FormData) {
   const admin = getSupabaseAdmin();
   if (!admin) throw new Error("Server not configured.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin
     .from("people")
     .update({
@@ -45,6 +56,7 @@ export async function updatePerson(id: string, formData: FormData) {
       email: (formData.get("email") as string)?.trim() || null,
       phone: (formData.get("phone") as string)?.trim() || null,
       household_id: (formData.get("household_id") as string) || null,
+      campus_id: campusId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

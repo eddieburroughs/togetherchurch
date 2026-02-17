@@ -2,8 +2,21 @@
 
 import { useActionState } from "react";
 import { createSession } from "@/features/kids/server/actions";
+import { CampusSelect } from "@/features/campuses/components/campus-select";
 
-export function SessionForm() {
+interface Campus {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export function SessionForm({
+  campuses = [],
+  campusMode = "off",
+}: {
+  campuses?: Campus[];
+  campusMode?: "off" | "optional" | "required";
+}) {
   const [error, formAction, pending] = useActionState(
     async (_prev: string | null, formData: FormData) => {
       try {
@@ -36,6 +49,8 @@ export function SessionForm() {
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" />
         </div>
       </div>
+
+      <CampusSelect campuses={campuses} campusMode={campusMode} />
 
       <button type="submit" disabled={pending}
         className="w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">

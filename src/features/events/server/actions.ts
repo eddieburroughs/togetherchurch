@@ -19,6 +19,11 @@ export async function createEvent(formData: FormData) {
   const startsAt = formData.get("starts_at") as string;
   if (!startsAt) throw new Error("Start date/time is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin.from("events").insert({
     church_id: ctx.churchId,
     title,
@@ -32,6 +37,7 @@ export async function createEvent(formData: FormData) {
     capacity: formData.get("capacity")
       ? parseInt(formData.get("capacity") as string, 10)
       : null,
+    campus_id: campusId,
   });
 
   if (error) throw new Error(error.message);
@@ -47,6 +53,11 @@ export async function updateEvent(id: string, formData: FormData) {
   const title = (formData.get("title") as string)?.trim();
   if (!title) throw new Error("Title is required.");
 
+  const campusId = (formData.get("campus_id") as string) || null;
+  if (ctx.campusMode === "required" && !campusId) {
+    throw new Error("Campus is required.");
+  }
+
   const { error } = await admin
     .from("events")
     .update({
@@ -61,6 +72,7 @@ export async function updateEvent(id: string, formData: FormData) {
       capacity: formData.get("capacity")
         ? parseInt(formData.get("capacity") as string, 10)
         : null,
+      campus_id: campusId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

@@ -2,8 +2,21 @@
 
 import { useActionState } from "react";
 import { createTrain } from "@/features/care-meals/server/actions";
+import { CampusSelect } from "@/features/campuses/components/campus-select";
 
-export function TrainForm() {
+interface Campus {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export function TrainForm({
+  campuses = [],
+  campusMode = "off",
+}: {
+  campuses?: Campus[];
+  campusMode?: "off" | "optional" | "required";
+}) {
   const [error, formAction, pending] = useActionState(
     async (_prev: string | null, formData: FormData) => {
       try {
@@ -71,6 +84,8 @@ export function TrainForm() {
           />
         </div>
       </div>
+
+      <CampusSelect campuses={campuses} campusMode={campusMode} />
 
       <button
         type="submit"
