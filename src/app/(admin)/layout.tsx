@@ -7,6 +7,7 @@ import {
 } from "@/lib/features/getChurchFeatures";
 import { FeatureProvider } from "@/lib/features/FeatureProvider";
 import { ENV } from "@/lib/env";
+import { AdminNav } from "./admin/admin-nav";
 
 export default async function AdminLayout({
   children,
@@ -60,6 +61,9 @@ export default async function AdminLayout({
   const features = featureMapToObject(featureMap);
 
   return (
-    <FeatureProvider features={features}>{children}</FeatureProvider>
+    <FeatureProvider features={features}>
+      <AdminNav />
+      {children}
+    </FeatureProvider>
   );
 }

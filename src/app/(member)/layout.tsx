@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
+import {
+  getChurchFeatures,
+  featureMapToObject,
+} from "@/lib/features/getChurchFeatures";
+import { FeatureProvider } from "@/lib/features/FeatureProvider";
 import { ENV } from "@/lib/env";
+import { MemberNav } from "./member-nav";
 
 export default async function MemberLayout({
   children,
@@ -45,5 +51,14 @@ export default async function MemberLayout({
     );
   }
 
-  return <>{children}</>;
+  const isAdmin = ctx.role === "admin" || ctx.role === "leader";
+  const featureMap = await getChurchFeatures(ctx.churchId);
+  const features = featureMapToObject(featureMap);
+
+  return (
+    <FeatureProvider features={features}>
+      <MemberNav isAdmin={isAdmin} />
+      {children}
+    </FeatureProvider>
+  );
 }
