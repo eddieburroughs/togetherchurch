@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHostContext, isAliasHost } from "@/lib/host/getHostContext";
+import { createSupabaseMiddleware } from "@/lib/supabase/middleware";
 
 /**
  * Paths that are always allowed regardless of host:
@@ -8,9 +9,9 @@ import { getHostContext, isAliasHost } from "@/lib/host/getHostContext";
 const PASSTHROUGH = /^\/(_next|favicon\.ico|health)/;
 
 /** Routes that belong to the app (not marketing). */
-const APP_ROUTES = /^\/(login|dashboard|admin|api)(\/|$)/;
+const APP_ROUTES = /^\/(login|dashboard|admin|api|auth)(\/|$)/;
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Always allow static assets and internals
@@ -30,17 +31,17 @@ export function middleware(request: NextRequest) {
   // --- B) Marketing hosts: only public routes ---
   if (ctx.kind === "marketing") {
     if (APP_ROUTES.test(pathname)) {
-      const url = new URL(
-        `https://${ctx.canonicalAppHost}/login`,
-      );
+      const url = new URL(`https://${ctx.canonicalAppHost}/login`);
       return NextResponse.redirect(url, 302);
     }
     return NextResponse.next();
   }
 
-  // --- C) App host (canonical or localhost): allow everything ---
+  // --- C) App host (canonical or localhost): refresh session + allow ---
   if (ctx.kind === "app") {
-    return NextResponse.next();
+    // Refresh Supabase session cookies on every app-host request
+    const { response } = createSupabaseMiddleware(request);
+    return response;
   }
 
   // --- D) Optional API host: only /api/* ---
@@ -62,12 +63,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, sitemap.xml, robots.txt
-     */
     "/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)",
   ],
 };

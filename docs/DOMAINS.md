@@ -100,6 +100,33 @@ curl -s http://localhost:3000/health -H "Host: togetherchurch.app"
 # Expect: 200, "OK"
 ```
 
+## Supabase Auth Settings
+
+In your Supabase project dashboard under **Authentication → URL Configuration**:
+
+| Setting                    | Value                                    |
+| -------------------------- | ---------------------------------------- |
+| **Site URL**               | `https://com.togetherchurch.app`         |
+| **Redirect URLs** (add all) |                                         |
+|                            | `https://com.togetherchurch.app/**`      |
+|                            | `https://app.togetherchurch.app/**`      |
+|                            | `http://localhost:3000/**`               |
+
+The `app.togetherchurch.app` redirect URL is included because users may bookmark it
+or receive links pointing there. The middleware will 301-redirect them to the canonical
+`com.togetherchurch.app` host, but Supabase needs to allow the redirect URL during
+the OAuth/magic-link flow.
+
+### Auth Callback Flow
+
+1. User clicks magic link or OAuth returns to `/auth/callback?code=...`
+2. The Route Handler at `src/app/(auth)/auth/callback/route.ts` exchanges the code for a session
+3. Session cookies are set, user is redirected to `/login`
+4. The login page detects the session and routes:
+   - No church membership → `/admin/onboarding/new-church`
+   - Admin/Leader → `/admin`
+   - Member → `/dashboard`
+
 ## SSL / TLS
 
 In production, use a reverse proxy (Caddy, nginx, etc.) to terminate TLS for all subdomains.

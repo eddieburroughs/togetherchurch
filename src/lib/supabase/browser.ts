@@ -1,28 +1,18 @@
-/**
- * Supabase client for browser (Client Components).
- * Returns null if Supabase is not configured — callers must handle this.
- */
+"use client";
 
-import { ENV } from "@/lib/env";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-let client: ReturnType<typeof createStub> | null = null;
+let client: SupabaseClient | null = null;
 
-function createStub() {
-  // Stub: will be replaced with real createBrowserClient once
-  // @supabase/ssr is installed and env vars are set.
-  console.warn("[supabase/browser] Supabase is not configured. Using stub.");
-  return null;
-}
+export function getSupabaseBrowser(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export function getSupabaseBrowser() {
-  if (!ENV.SUPABASE_URL || !ENV.SUPABASE_ANON_KEY) {
-    return null;
-  }
+  if (!url || !key) return null;
 
   if (!client) {
-    // TODO: Replace with createBrowserClient from @supabase/ssr
-    client = createStub();
+    client = createBrowserClient(url, key);
   }
-
   return client;
 }
