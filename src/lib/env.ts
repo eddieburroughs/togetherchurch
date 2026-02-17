@@ -36,6 +36,11 @@ export const ENV = {
   SMTP_PASS: env("SMTP_PASS"),
   EMAIL_FROM: env("EMAIL_FROM", "noreply@togetherchurch.app"),
 
+  // Stripe
+  STRIPE_SECRET_KEY: env("STRIPE_SECRET_KEY"),
+  STRIPE_WEBHOOK_SECRET: env("STRIPE_WEBHOOK_SECRET"),
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: env("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"),
+
   // Helpers
   get isConfigured() {
     return Boolean(this.SUPABASE_URL && this.SUPABASE_ANON_KEY);

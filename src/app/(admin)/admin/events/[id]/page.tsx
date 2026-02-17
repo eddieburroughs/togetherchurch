@@ -24,7 +24,15 @@ export default async function AdminEventDetailPage({ params }: Props) {
         &larr; Back to Events
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold tracking-tight">{event.title}</h1>
+      <div className="mt-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
+        <Link
+          href={`/admin/events/${id}/tickets`}
+          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        >
+          Manage Tickets
+        </Link>
+      </div>
 
       <div className="mt-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
         <dl className="space-y-2 text-sm">
