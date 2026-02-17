@@ -5,6 +5,7 @@ import {
   sendBroadcast,
   getRecipientCount,
 } from "@/features/messaging/server/actions";
+import { estimateSegments } from "@/features/messaging/lib/segments";
 
 interface Template {
   id: string;
@@ -294,9 +295,9 @@ export function ComposeForm({
           onChange={(e) => setBody(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        {channel === "sms" && (
+        {channel === "sms" && body.length > 0 && (
           <p className="mt-1 text-xs text-zinc-400">
-            {body.length} chars
+            {body.length} chars &middot; {estimateSegments(body)} segment{estimateSegments(body) !== 1 ? "s" : ""}
           </p>
         )}
       </div>

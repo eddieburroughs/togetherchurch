@@ -184,6 +184,32 @@ export async function createTemplate(formData: FormData) {
   redirect("/admin/messaging/templates");
 }
 
+export async function updateTemplate(id: string, formData: FormData) {
+  const session = await getSessionUser();
+  if (!session) throw new Error("Authentication required.");
+
+  const ctx = await getUserChurchContext(session.id);
+  if (!ctx) throw new Error("No church membership.");
+
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Server not configured.");
+
+  const name = (formData.get("name") as string)?.trim();
+  if (!name) throw new Error("Template name is required.");
+
+  const body = (formData.get("body") as string)?.trim();
+  if (!body) throw new Error("Template body is required.");
+
+  const { error } = await admin
+    .from("message_templates")
+    .update({ name, body })
+    .eq("id", id)
+    .eq("church_id", ctx.churchId);
+
+  if (error) throw new Error(error.message);
+  redirect("/admin/messaging/templates");
+}
+
 export async function deleteTemplate(id: string) {
   // Check both messaging features — template could be either channel
   const session = await getSessionUser();
