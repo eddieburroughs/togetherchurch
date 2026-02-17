@@ -37,6 +37,10 @@ const ACTION_LABELS: Record<string, string> = {
   "template.updated": "Updated template",
   "template.deleted": "Deleted template",
   "order.refunded": "Refunded order",
+  "partner.created": "Added giving partner",
+  "partner.updated": "Updated giving partner",
+  "partner.deleted": "Removed giving partner",
+  "giving.url_updated": "Updated giving URL",
 };
 
 const TARGET_TYPES = [
@@ -50,6 +54,8 @@ const TARGET_TYPES = [
   "train",
   "template",
   "order",
+  "partner",
+  "settings",
 ];
 
 function formatAction(action: string): string {

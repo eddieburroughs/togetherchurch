@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth/getSessionUser";
+import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { redirect } from "next/navigation";
 import { listPublishedAnnouncements } from "@/features/announcements/server/queries";
 import Link from "next/link";
@@ -19,11 +20,31 @@ export default async function MemberDashboard() {
   const session = await getSessionUser();
   if (!session) redirect("/login");
 
+  const ctx = await getUserChurchContext(session.id);
   const announcements = await listPublishedAnnouncements();
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold tracking-tight">Home</h1>
+
+      {ctx?.givingUrl && (
+        <div className="mt-4 flex gap-2">
+          <a
+            href={ctx.givingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            Give Online
+          </a>
+          <Link
+            href="/dashboard/giving"
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            Giving &amp; Partners
+          </Link>
+        </div>
+      )}
 
       {announcements.length > 0 ? (
         <div className="mt-6 space-y-4">
