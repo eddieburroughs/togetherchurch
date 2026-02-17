@@ -17,6 +17,13 @@ export const ENV = {
   SUPABASE_ANON_KEY: env("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   SUPABASE_SERVICE_ROLE_KEY: env("SUPABASE_SERVICE_ROLE_KEY"),
 
+  // Hosts
+  APP_CANONICAL_HOST: env("APP_CANONICAL_HOST", "com.togetherchurch.app"),
+  APP_ALIAS_HOST: env("APP_ALIAS_HOST", "app.togetherchurch.app"),
+  MARKETING_HOST: env("MARKETING_HOST", "togetherchurch.app"),
+  MARKETING_HOST_WWW: env("MARKETING_HOST_WWW", "www.togetherchurch.app"),
+  OPTIONAL_API_HOST: env("OPTIONAL_API_HOST"),
+
   // Helpers
   get isConfigured() {
     return Boolean(this.SUPABASE_URL && this.SUPABASE_ANON_KEY);
