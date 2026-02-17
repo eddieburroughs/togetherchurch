@@ -15,7 +15,7 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export default async function MemberDashboard() {
+export default async function AnnouncementsPage() {
   const session = await getSessionUser();
   if (!session) redirect("/login");
 
@@ -23,11 +23,20 @@ export default async function MemberDashboard() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight">Home</h1>
+      <Link
+        href="/dashboard"
+        className="text-sm text-zinc-500 hover:underline"
+      >
+        &larr; Dashboard
+      </Link>
+
+      <h1 className="mt-4 text-2xl font-bold tracking-tight">
+        Announcements
+      </h1>
 
       {announcements.length > 0 ? (
         <div className="mt-6 space-y-4">
-          {announcements.slice(0, 10).map((a) => (
+          {announcements.map((a) => (
             <article
               key={a.id}
               className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
@@ -50,15 +59,6 @@ export default async function MemberDashboard() {
               )}
             </article>
           ))}
-
-          {announcements.length > 10 && (
-            <Link
-              href="/dashboard/announcements"
-              className="block text-center text-sm text-zinc-500 hover:underline"
-            >
-              View all announcements
-            </Link>
-          )}
         </div>
       ) : (
         <p className="mt-6 text-sm text-zinc-500">
