@@ -76,6 +76,22 @@ export async function POST(request: NextRequest) {
       break;
     }
 
+    case "charge.refunded": {
+      // Backup handler: Stripe confirms a refund was processed
+      const charge = event.data.object;
+      const piId = charge.payment_intent;
+      if (piId) {
+        await admin
+          .from("ticket_orders")
+          .update({
+            status: "refunded",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_payment_intent", piId);
+      }
+      break;
+    }
+
     case "account.updated": {
       // Stripe Connect account status changed
       const account = event.data.object;

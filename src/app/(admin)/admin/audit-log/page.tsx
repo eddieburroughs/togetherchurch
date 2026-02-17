@@ -36,6 +36,7 @@ const ACTION_LABELS: Record<string, string> = {
   "template.created": "Created template",
   "template.updated": "Updated template",
   "template.deleted": "Deleted template",
+  "order.refunded": "Refunded order",
 };
 
 const TARGET_TYPES = [
@@ -48,6 +49,7 @@ const TARGET_TYPES = [
   "tag",
   "train",
   "template",
+  "order",
 ];
 
 function formatAction(action: string): string {
@@ -62,6 +64,8 @@ function formatMeta(meta: Record<string, unknown> | null): string {
     return `${meta.imported} imported, ${meta.skipped ?? 0} skipped`;
   if (meta.sent !== undefined)
     return `${meta.sent} sent${meta.failed ? `, ${meta.failed} failed` : ""}`;
+  if (meta.confirmation_code)
+    return `${meta.confirmation_code}${meta.amount_cents ? ` ($${(Number(meta.amount_cents) / 100).toFixed(2)})` : ""}`;
   return "";
 }
 

@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth/getSessionUser";
 import { getUserChurchContext } from "@/lib/auth/getUserChurchContext";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireFeature } from "@/lib/features/requireFeature";
+import { logAudit } from "@/lib/audit/logAudit";
 import { ENV } from "@/lib/env";
 
 function generateConfirmationCode(): string {
@@ -445,6 +446,85 @@ export async function refreshStripeConnectStatus() {
     chargesEnabled: account.charges_enabled as boolean,
     detailsSubmitted: account.details_submitted as boolean,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Refunds
+// ---------------------------------------------------------------------------
+
+export async function refundOrder(orderId: string) {
+  const { session, ctx } = await requireFeature("engage.events.tickets");
+
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Server not configured.");
+
+  const { data: order } = await admin
+    .from("ticket_orders")
+    .select("id, status, total_cents, stripe_payment_intent, event_id, church_id, confirmation_code")
+    .eq("id", orderId)
+    .eq("church_id", ctx.churchId)
+    .single();
+
+  if (!order) throw new Error("Order not found.");
+  if (order.status === "refunded") throw new Error("Order is already refunded.");
+  if (order.status !== "completed") throw new Error("Only completed orders can be refunded.");
+
+  // If paid order, issue Stripe refund
+  if (order.total_cents > 0 && order.stripe_payment_intent) {
+    if (!ENV.STRIPE_SECRET_KEY) throw new Error("Stripe not configured.");
+
+    // Get connected account
+    const { data: connect } = await admin
+      .from("stripe_connect_accounts")
+      .select("stripe_account_id")
+      .eq("church_id", ctx.churchId)
+      .single();
+
+    if (!connect) throw new Error("Stripe Connect account not found.");
+
+    const params = new URLSearchParams();
+    params.append("payment_intent", order.stripe_payment_intent);
+
+    const resp = await fetch("https://api.stripe.com/v1/refunds", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ENV.STRIPE_SECRET_KEY}`,
+        "Stripe-Account": connect.stripe_account_id,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message ?? "Failed to process refund.");
+    }
+  }
+
+  // Update order status
+  await admin
+    .from("ticket_orders")
+    .update({
+      status: "refunded",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+
+  await logAudit({
+    churchId: ctx.churchId,
+    userId: session.id,
+    action: "order.refunded",
+    targetType: "order",
+    targetId: orderId,
+    meta: {
+      confirmation_code: order.confirmation_code,
+      amount_cents: order.total_cents,
+      event_id: order.event_id,
+    },
+  });
+
+  revalidatePath(`/admin/events/${order.event_id}/orders`);
+  revalidatePath(`/admin/events/${order.event_id}/checkin`);
 }
 
 // ---------------------------------------------------------------------------
